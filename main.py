@@ -26,45 +26,42 @@ async def download_template_from_github() -> str:
         return fallback_template
 
 def get_advanced_palette(image_bytes: bytes) -> dict:
-    """Вытаскивает умную палитру цветов из изображения"""
+    """Вытаскивает палитру и распределяет цвета исключительно на основе картинки"""
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    # Сжимаем картинку для ускорения анализа
     image.thumbnail((200, 200))
     
-    # Квантуем изображение до 5 главных цветов
     quantized = image.quantize(colors=5, method=Image.Quantize.MAXCOVERAGE)
-    palette = quantized.getpalette()[:15] # 5 цветов * 3 (RGB)
+    palette = quantized.getpalette()[:15]
     
-    # Собираем список RGB-кортежей
     colors = [tuple(palette[i:i+3]) for i in range(0, len(palette), 3)]
     
-    # Сортируем цвета по яркости (от самого темного к самому светлому)
+    # Сортируем от самого темного к самому светлому
     colors.sort(key=lambda rgb: sum(rgb) / 3)
     
     def rgb_to_hex(rgb_tuple):
         return f"#{rgb_tuple[0]:02x}{rgb_tuple[1]:02x}{rgb_tuple[2]:02x}"
 
-    # Магия распределения ролей:
-    # 1. Если картинка в основном темная (как ваш скриншот)
-    if (sum(colors[0]) / 3) < 127:
-        return {
-            "bg_color": rgb_to_hex(colors[0]),               # Самый темный цвет на фон
-            "bg_color_light": rgb_to_hex(colors[1]),         # Чуть светлее для панелей и чужих облачков
-            "primary_color": rgb_to_hex(colors[-1]),         # Самый яркий/светлый для ваших облачков и кнопок (салатовый!)
-            "primary_color_alpha": rgb_to_hex(colors[-2]),   # Второй по яркости для выделения
-            "text_color": "#ffffff",                         # Белый текст для темной темы
-            "text_muted": "#aaaaaa"
-        }
-    # 2. Если картинка в основном светлая
+    # Считаем яркость самого частого цвета (фона)
+    bg_rgb = colors[0]
+    bg_brightness = sum(bg_rgb) / 3
+    
+    # Автоматически определяем контрастный цвет текста
+    if bg_brightness > 127:
+        text_hex = "#000000"
+        text_muted_hex = "#666666"
     else:
-        return {
-            "bg_color": "#ffffff",                           # Чистый белый фон для читаемости
-            "bg_color_light": "#f0f0f0",                     # Серый для панелей
-            "primary_color": rgb_to_hex(colors[0]),         # Самый насыщенный темный цвет для акцентов
-            "primary_color_alpha": rgb_to_hex(colors[1]),
-            "text_color": "#000000",                         # Черный текст
-            "text_muted": "#777777"
-        }
+        text_hex = "#ffffff"
+        text_muted_hex = "#aaaaaa"
+
+    # Берем цвета строго из картинки!
+    return {
+        "bg_color": rgb_to_hex(colors[0]),          # Самый глубокий темный цвет картинки
+        "bg_color_light": rgb_to_hex(colors[1]),    # Чуть светлее для панелей чата
+        "primary_color": rgb_to_hex(colors[-1]),    # Самый яркий/светлый акцент (салатовый!)
+        "primary_color_alpha": rgb_to_hex(colors[-2]), # Второй по яркости для выделения
+        "text_color": text_hex,                     # Контрастный текст (белый или черный)
+        "text_muted": text_muted_hex
+    }
 
 def generate_theme_file(template: str, palette: dict) -> str:
     """Подставляет готовую палитру в шаблон"""
