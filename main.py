@@ -69,23 +69,40 @@ def generate_theme_file(template: str, rgb: tuple) -> str:
 # --- Хэндлеры бота ---
 @dp.message(F.text == "/start")
 async def start_cmd(message: types.Message):
-    await message.answer("👋 Привет! Отправь мне картинку, и я соберу тему на основе актуального шаблона из GitHub!")
+    await message.answer("👋 Привет! Отправь мне картинку (как фото или как файл), и я соберу тему на основе актуального шаблона из GitHub!")
 
-@dp.message(F.photo)
+# Этот хэндлер теперь ловит И фотографии, И файлы картинок (PNG, JPG)
+@dp.message(F.photo | (F.document & F.document.mime_type.startswith("image/")))
 async def process_photo(message: types.Message):
     await message.answer("⏳ Загружаю свежий шаблон с GitHub и собираю тему...")
     try:
-        photo = message.photo[-1]
-        file_info = await bot.get_file(photo.file_id)
+        # Определяем, фото это или документ, и берем ID файла
+        if message.photo:
+            file_id = message.photo[-1].file_id
+        else:
+            file_id = message.document.file_id
+            
+        print(f"Получен файл с ID: {file_id}. Начинаю скачивание...")
+        
+        file_info = await bot.get_file(file_id)
         photo_bytes = await bot.download_file(file_info.file_path)
         
+        print("Фото успешно скачано. Запрашиваю шаблон с GitHub...")
         github_template = await download_template_from_github()
+        
+        print("Шаблон получен. Вычисляю доминантный цвет...")
         rgb = get_dominant_color(photo_bytes.read())
+        
+        print(f"Цвет определен: {rgb}. Форматирую тему...")
         theme_data = generate_theme_file(github_template, rgb)
         
+        print("Тема сгенерирована. Отправляю пользователю...")
         theme_file = BufferedInputFile(theme_data.encode('utf-8'), filename="github_custom_theme.attheme")
         await message.answer_document(document=theme_file, caption="🎨 Твоя тема готова!")
+        print("Файл успешно отправлен!")
+        
     except Exception as e:
+        print(f"КРИТИЧЕСКАЯ ОШИБКА: {e}")
         await message.answer(f"❌ Произошла ошибка внутри бота:\n`{str(e)}`", parse_mode="Markdown")
 
 # --- Функция запуска вебхука через триггеры aiogram 3 ---
