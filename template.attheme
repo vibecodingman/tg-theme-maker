@@ -1,9 +1,56 @@
-windowBackgroundGray = {bg_color}
-windowBackgroundWhite = {bg_color}
+# --- Панель навигации (Верхний бар) ---
 actionBarDefault = {primary_color}
+actionBarDefaultTop = {primary_color}
 actionBarDefaultIcon = {text_color}
 actionBarDefaultTitle = {text_color}
+actionBarDefaultSelector = {primary_color_alpha}
+statusBarBackgroundColor = {primary_color}
+
+# --- Общий фон приложения ---
+windowBackgroundWhite = {bg_color}
+windowBackgroundGray = {bg_color_light}
+windowBackgroundWhiteBlackText = {text_color}
+windowBackgroundWhiteGrayText2 = {text_muted}
+
+# --- Боковое меню (Sidebar) ---
+chats_menuBackground = {bg_color}
+chats_menuItemText = {text_color}
+chats_menuItemIcon = {text_muted}
+chats_menuTopBackground = {primary_color}
+chats_menuCloudBackground = {primary_color}
+
+# --- Список чатов (Главный экран) ---
+chats_date = {text_muted}
+chats_name = {text_color}
+chats_message = {text_muted}
+chats_background = {bg_color}
+chats_selector = {bg_color_light}
+chats_actionBackground = {primary_color}
+chats_actionIcon = {text_color}
+
+# --- Экран внутри чата ---
+chat_wallpaper = {bg_color}
+chat_wallpaper_gradient_to = {bg_color_light}
+
+# Входящие сообщения (Облачка от других людей)
 chat_inBubble = {bg_color_light}
-chat_outBubble = {primary_color_alpha}
+chat_inBubbleSelected = {primary_color_alpha}
 chat_inText = {text_color}
+chat_inTime = {text_muted}
+chat_inAudioPerfNameText = {text_color}
+chat_inFileNameText = {primary_color}
+
+# Исходящие сообщения (Ваши облачка)
+chat_outBubble = {primary_color}
+chat_outBubbleSelected = {primary_color_alpha}
 chat_outText = {text_color}
+chat_outTime = {text_color}
+chat_outAudioPerfNameText = {text_color}
+chat_outFileNameText = {text_color}
+
+# Нижняя панель ввода сообщения
+chat_messagePanelBackground = {bg_color}
+chat_messagePanelText = {text_color}
+chat_messagePanelHint = {text_muted}
+chat_messagePanelSend = {primary_color}
+chat_messagePanelIcons = {text_muted}
