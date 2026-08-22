@@ -80,16 +80,23 @@ def get_dominant_color(image_bytes: bytes) -> tuple:
     return image_small.getpixel((0, 0))
 
 def generate_theme_file(template: str, rgb: tuple) -> str:
+    """Сборка констант темы с безопасным расчетом цветов"""
     def rgb_to_hex(r, g, b):
         return f"#{r:02x}{g:02x}{b:02x}"
         
     primary_hex = rgb_to_hex(*rgb)
+    
+    # Определяем яркость фона
     if (sum(rgb) / 3) > 127:
         bg_hex, bg_light_hex, text_hex, text_muted = "#ffffff", "#f0f0f0", "#000000", "#777777"
     else:
         bg_hex, bg_light_hex, text_hex, text_muted = "#181818", "#2c2c2c", "#ffffff", "#aaaaaa"
         
-    primary_alpha_hex = rgb_to_hex(max(0, rgb-20), max(0, rgb-20), max(0, rgb-20))
+    # ИСПРАВЛЕНО: Безопасно вычитаем 20 из каждого канала RGB, чтобы цвет не ушел ниже нуля
+    r_alpha = max(0, rgb[0] - 20)
+    g_alpha = max(0, rgb[1] - 20)
+    b_alpha = max(0, rgb[2] - 20)
+    primary_alpha_hex = rgb_to_hex(r_alpha, g_alpha, b_alpha)
     
     try:
         return template.format(
