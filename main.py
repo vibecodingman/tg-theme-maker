@@ -1,13 +1,13 @@
 import os
-import asyncio
 import io
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import BufferedInputFile
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web, ClientSession
 from PIL import Image
 
-# 1. Считываем переменные окружения
+# 1. Считываем настройки
 TOKEN = os.getenv("BOT_TOKEN")
 RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
 
@@ -16,12 +16,11 @@ GITHUB_REPO = os.getenv("GITHUB_REPO", "")
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "main")  
 GITHUB_FILE_PATH = os.getenv("GITHUB_FILE_PATH", "template.attheme") 
 
-# 2. Инициализация бота
+# 2. Инициализируем бота и диспетчер
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
 async def download_template_from_github() -> str:
-    """Безопасное скачивание шаблона с GitHub"""
     owner = GITHUB_OWNER.strip().strip('/')
     repo = GITHUB_REPO.strip().strip('/')
     branch = GITHUB_BRANCH.strip().strip('/')
@@ -38,13 +37,11 @@ async def download_template_from_github() -> str:
             return "windowBackgroundWhite = {bg_color}\nactionBarDefault = {primary_color}"
 
 def get_dominant_color(image_bytes: bytes) -> tuple:
-    """Определение главного цвета через Pillow"""
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     image_small = image.resize((1, 1), resample=Image.Resampling.LANCZOS)
     return image_small.getpixel((0, 0))
 
 def generate_theme_file(template: str, rgb: tuple) -> str:
-    """Сборка констант темы"""
     def rgb_to_hex(r, g, b):
         return f"#{r:02x}{g:02x}{b:02x}"
         
@@ -54,7 +51,7 @@ def generate_theme_file(template: str, rgb: tuple) -> str:
     else:
         bg_hex, bg_light_hex, text_hex, text_muted = "#181818", "#2c2c2c", "#ffffff", "#aaaaaa"
         
-    primary_alpha_hex = rgb_to_hex(max(0, rgb[0]-20), max(0, rgb[1]-20), max(0, rgb[2]-20))
+    primary_alpha_hex = rgb_to_hex(max(0, rgb-20), max(0, rgb-20), max(0, rgb-20))
     
     try:
         return template.format(
@@ -69,6 +66,7 @@ def generate_theme_file(template: str, rgb: tuple) -> str:
         print(f"Ошибка форматирования: {e}")
         return template.strip()
 
+# --- Хэндлеры бота ---
 @dp.message(F.text == "/start")
 async def start_cmd(message: types.Message):
     await message.answer("👋 Привет! Отправь мне картинку, и я соберу тему на основе актуального шаблона из GitHub!")
@@ -90,28 +88,31 @@ async def process_photo(message: types.Message):
     except Exception as e:
         await message.answer(f"❌ Произошла ошибка внутри бота:\n`{str(e)}`", parse_mode="Markdown")
 
-# --- Вебхук эндпоинт ---
-async def handle_webhook(request):
-    try:
-        update = types.Update.model_validate(await request.json(), context={"bot": bot})
-        await dp.feed_update(bot, update)
-    except Exception as e:
-        print(f"Ошибка вебхука: {e}")
-    return web.Response(text="OK")
-
-async def on_startup(app):
-    webhook_url = f"{RENDER_EXTERNAL_URL}/webhook"
+# --- Функция запуска вебхука через триггеры aiogram 3 ---
+async def on_startup(bot: Bot) -> None:
+    # Очищаем слэши у базового URL
+    base_url = RENDER_EXTERNAL_URL.strip().rstrip('/')
+    webhook_url = f"{base_url}/webhook"
     await bot.set_webhook(webhook_url)
-    print(f"Сервер запущен. Вебхук: {webhook_url}")
-
-async def on_shutdown(app):
-    await bot.delete_webhook()
+    print(f"Вебхук успешно установлен на: {webhook_url}")
 
 def main():
+    # Регистрируем событие запуска в диспетчере aiogram
+    dp.startup.register(on_startup)
+    
     app = web.Application()
-    app.router.add_post('/webhook', handle_webhook)
-    app.on_startup.append(on_startup)
-    app.on_shutdown.append(on_shutdown)
+    
+    # Официальный обработчик вебхуков aiogram 3
+    webhook_requests_handler = SimpleRequestHandler(
+        dispatcher=dp,
+        bot=bot
+    )
+    # Регистрируем путь /webhook в aiohttp приложении
+    webhook_requests_handler.register(app, path="/webhook")
+    
+    # Связываем приложение и диспетчер
+    setup_application(app, dp, bot=bot)
+    
     port = int(os.getenv("PORT", 10000))
     web.run_app(app, host='0.0.0.0', port=port)
 
