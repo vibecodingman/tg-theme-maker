@@ -21,13 +21,22 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
 async def download_template_from_github() -> str:
-    owner = GITHUB_OWNER.strip().strip('/')
-    repo = GITHUB_REPO.strip().strip('/')
-    branch = GITHUB_BRANCH.strip().strip('/')
-    file_path = GITHUB_FILE_PATH.strip().lstrip('/')
+    """Прямое скачивание файла шаблона из вашего репозитория GitHub"""
+    # Жестко прописываем прямую ссылку на ваш raw-файл
+    url = "https://githubusercontent.com"
     
-    url = f"https://githubusercontent.com{owner}/{repo}/{branch}/{file_path}"
-    print(f"Скачивание шаблона по адресу: {url}")
+    # ПРИМЕЧАНИЕ: Если ваш репозиторий называется по-другому или файл имеет другое имя,
+    # просто замените текст в кавычках выше на правильную прямую raw-ссылку!
+    
+    print(f"Попытка скачать шаблон по прямому адресу: {url}")
+    
+    async with ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status == 200:
+                return await response.text(encoding='utf-8')
+            else:
+                print(f"Ошибка GitHub! Статус: {response.status}. Отдаю аварийный шаблон.")
+                return "windowBackgroundWhite = {bg_color}\nactionBarDefault = {primary_color}"
     
     async with ClientSession() as session:
         async with session.get(url) as response:
