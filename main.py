@@ -32,7 +32,7 @@ def get_advanced_palette(image_bytes: bytes) -> dict:
     image.thumbnail((200, 200))
     
     # Квантуем изображение до 5 главных цветов
-    quantized = image.quantize(colors=5, method=Image.Quantize.FASTEST)
+    quantized = image.quantize(colors=5, method=Image.Quantize.MAXCOVERAGE)
     palette = quantized.getpalette()[:15] # 5 цветов * 3 (RGB)
     
     # Собираем список RGB-кортежей
