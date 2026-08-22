@@ -88,22 +88,29 @@ async def start_cmd(message: types.Message):
 async def process_photo(message: types.Message):
     await message.answer("⏳ Загружаю свежий шаблон с GitHub и собираю тему...")
     
-    # 1. Скачиваем фото пользователя
-    photo = message.photo[-1]
-    file_info = await bot.get_file(photo.file_id)
-    photo_bytes = await bot.download_file(file_info.file_path)
-    
-    # 2. Скачиваем шаблон из GitHub
-    github_template = await download_template_from_github()
-    
-    # 3. Обрабатываем и собираем файл темы
-    rgb = get_dominant_color(photo_bytes.read())
-    theme_data = generate_theme_file(github_template, rgb)
-    
-    # 4. Отправляем готовый файл темы обратно в Telegram
-    theme_file = BufferedInputFile(theme_data.encode('utf-8'), filename="github_custom_theme.attheme")
-    await message.answer_document(document=theme_file, caption="🎨 Твоя тема готова по шаблону из GitHub!")
-
+    try:
+        # 1. Скачиваем фото пользователя
+        photo = message.photo[-1]
+        file_info = await bot.get_file(photo.file_id)
+        photo_bytes = await bot.download_file(file_info.file_path)
+        
+        # 2. Скачиваем шаблон из GitHub
+        github_template = await download_template_from_github()
+        
+        # 3. Определяем цвет
+        rgb = get_dominant_color(photo_bytes.read())
+        
+        # 4. Генерируем тему
+        theme_data = generate_theme_file(github_template, rgb)
+        
+        # 5. Отправляем файл
+        theme_file = BufferedInputFile(theme_data.encode('utf-8'), filename="github_custom_theme.attheme")
+        await message.answer_document(document=theme_file, caption="🎨 Твоя тема готова!")
+        
+    except Exception as e:
+        # Если что-то пойдет не так, бот пришлет точный текст ошибки прямо в чат
+        await message.answer(f"❌ Произошла ошибка внутри бота:\n`{str(e)}`", parse_mode="Markdown")
+        
 # --- Настройка Webhook для Render ---
 async def handle_webhook(request):
     url = str(request.url)
