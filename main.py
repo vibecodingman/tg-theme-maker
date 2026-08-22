@@ -21,14 +21,43 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
 async def download_template_from_github() -> str:
-    """Прямое скачивание файла шаблона из вашего репозитория GitHub"""
-    # Жестко прописываем прямую ссылку на ваш raw-файл
+    """Безопасное скачивание шаблона с GitHub с резервным планом в коде"""
     url = "https://githubusercontent.com"
     
-    # ПРИМЕЧАНИЕ: Если ваш репозиторий называется по-другому или файл имеет другое имя,
-    # просто замените текст в кавычках выше на правильную прямую raw-ссылку!
+    # Резервный полноценный шаблон Android темы (сработает, если упадет интернет или DNS на Render)
+    fallback_template = """
+    windowBackgroundGray = {bg_color}
+    windowBackgroundWhite = {bg_color}
+    actionBarDefault = {primary_color}
+    actionBarDefaultTop = {primary_color}
+    actionBarDefaultIcon = {text_color}
+    actionBarDefaultTitle = {text_color}
+    chat_inBubble = {bg_color_light}
+    chat_inBubbleSelected = {primary_color_alpha}
+    chat_inText = {text_color}
+    chat_outBubble = {primary_color_alpha}
+    chat_outText = {text_color}
+    chat_outTime = {text_color_muted}
+    chat_inTime = {text_color_muted}
+    chat_wallpaper = {bg_color}
+    """.strip()
+
+    print(f"Попытка скачать шаблон по адресу: {url}")
     
-    print(f"Попытка скачать шаблон по прямому адресу: {url}")
+    try:
+        async with ClientSession() as session:
+            # Ставим жесткий тайм-аут на чтение, чтобы бот не зависал дольше 5 секунд
+            async with session.get(url, timeout=5) as response:
+                if response.status == 200:
+                    print("Шаблон успешно скачан с GitHub!")
+                    return await response.text(encoding='utf-8')
+                else:
+                    print(f"GitHub ответил статусом {response.status}. Использую резервный шаблон.")
+                    return fallback_template
+    except Exception as e:
+        # Сюда попадет как раз наша ошибка DNS "No address associated with hostname"
+        print(f"⚠️ Ошибка сети/DNS при обращении к GitHub ({e}). Активирую резервный шаблон!")
+        return fallback_template
     
     async with ClientSession() as session:
         async with session.get(url) as response:
