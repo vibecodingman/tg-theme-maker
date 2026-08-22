@@ -1,0 +1,9 @@
+windowBackgroundGray = {bg_color}
+windowBackgroundWhite = {bg_color}
+actionBarDefault = {primary_color}
+actionBarDefaultIcon = {text_color}
+actionBarDefaultTitle = {text_color}
+chat_inBubble = {bg_color_light}
+chat_outBubble = {primary_color_alpha}
+chat_inText = {text_color}
+chat_outText = {text_color}
